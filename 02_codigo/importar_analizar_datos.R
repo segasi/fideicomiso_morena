@@ -27,3 +27,12 @@ tema <-  theme_minimal() +
         axis.title = element_text(size = 18, hjust = 1, face = "bold", margin = margin(0,0,0,0), family="Didact Gothic Regular"),
         axis.text = element_text(size = 16, face = "bold", family="Didact Gothic Regular"))
 
+### Importar datos ----
+ingresos_efectivo <- read_excel("01_datos/ANEXO I INGRESOS sin macros.xlsx")
+
+ingresos_cheque <- read_excel("01_datos/ANEXO II.xlsx", range = "a5:e158")
+
+egresos_cheque <- read_excel("01_datos/Copia de ANEXO III.xlsx", range = "a4:e173")
+
+
+
