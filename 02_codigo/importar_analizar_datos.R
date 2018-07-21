@@ -41,3 +41,9 @@ egresos_cheque <- read_excel("01_datos/CGor201807-18-rp-5-4-a3.XLSX", range = "a
 ingresos_efectivo <- clean_names(ingresos_efectivo)
 ingresos_cheque <- clean_names(ingresos_cheque)
 egresos_cheque <- clean_names(egresos_cheque)
+
+
+### Construir variable fecha para el df ingresos_efectivo----
+ingresos_efectivo <- ingresos_efectivo %>% 
+  mutate(fecha = make_date(ano, mes, dia))
+
