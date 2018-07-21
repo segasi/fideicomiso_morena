@@ -47,3 +47,15 @@ egresos_cheque <- clean_names(egresos_cheque)
 ingresos_efectivo <- ingresos_efectivo %>% 
   mutate(fecha = make_date(ano, mes, dia))
 
+### Calcular depósitos diarios en efectivo ----
+ingresos_efectivo %>% 
+  filter(fecha < "2018-06-01") %>% 
+  group_by(fecha) %>% 
+  summarise(total_diario = sum(monto)) %>% 
+  ungroup() %>% 
+  mutate(total_acumuldo = cumsum(total_diario)) %>% 
+  ggplot() +
+  geom_line(aes(fecha, total_diario)) +
+  tema
+
+
