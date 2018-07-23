@@ -31,7 +31,7 @@ tema <-  theme_minimal() +
 ingresos_efectivo <- read_excel("01_datos/CGor201807-18-rp-5-4-a1 sin macro.xlsx")
 
 ingresos_cheque <- read_excel("01_datos/CGor201807-18-rp-5-4-a2.XLSX", 
-                              range = "a5:e158", 
+                              range = "a5:e163", 
                               col_types = c("numeric", "text", "text", "date", "numeric"))
 
 egresos_cheque <- read_excel("01_datos/CGor201807-18-rp-5-4-a3.XLSX", range = "a4:e173")
@@ -128,12 +128,92 @@ ingresos_efectivo %>%
        x = "\nMonto del donativo",
        y = "Núm. de donativos\n",
        size = "Suma de donativos recabados\npor cada monto (millones)",
-       caption = "\nSebastián Garrido de Sierra / @segasi / Fuente: Anexo 1 del punto 5.4 de la sesión del 18 de julio de 2018 del Consejo General del INE (https://bit.ly/2A0VMnb).\nNota: El Anexo 1 indica que 14 de los despósitos de $50,000 ocurrieron el 28 de diciembre de 2018. Si bien es probable que la fecha correcta sea 27 de\ndiciembre de 2017, esto debe ser aclarado por la autoridad electoral.") +
+       caption = "\nSebastián Garrido de Sierra / @segasi / Fuente: Anexo 1 del punto 5.4 de la sesión del 18 de julio de 2018 del Consejo General del INE (https://bit.ly/2A0VMnb).\n\nNota: El Anexo 1 indica que 14 de los depósitos de $50,000 ocurrieron el 28 de diciembre de 2018. Si bien es probable que la fecha correcta sea 27 de\ndiciembre de 2017, esto debe ser aclarado por la autoridad electoral.") +
   tema +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         legend.position = c(0.8, 0.85))
 
 
 ggsave(filename = "montos_vs_total_recabado_efectivo.png", path = "03_graficas/", width = 15, height = 10)
+
+
+### Gráficas de líneas de depósitos diarios y depósitos acumulacos por tipo de depósito ----
+
+# Primero, construir un nuevo dataframe usando sólo las columnas que necesito de los ingresos_efectivo e ingresos_cheque 
+
+datos_efectivo <- ingresos_efectivo %>% 
+  select(fecha, monto) %>% 
+  mutate(tipo = "Depósitos en efectivo")
+
+datos_cheques <- ingresos_cheque %>% 
+  select(fecha_sello, importe) %>% 
+  rename(fecha = fecha_sello,
+         monto = importe) %>% 
+  mutate(tipo = "Depósitos con cheque",
+         fecha = as_date(fecha))
+
+# Unir columnas seleccionadas y generar un nuevo dataframe llamado datos
+datos <- rbind(datos_efectivo, datos_cheques)
+
+# Gráfica de depósitos totales diarios
+datos %>%
+  filter(fecha > "2017-09-01",
+         fecha < "2018-06-01") %>%  # Con este filtro elimino las observaciones con fechas que me parece son equivocadas en los anexos del INE
+  group_by(tipo, fecha) %>% 
+  summarise(total_diario = sum(monto)) %>% 
+  ungroup() %>% 
+  ggplot() +
+  geom_line(aes(fecha, total_diario/1000000, group = tipo, color = tipo), size = 1.2, alpha = 0.8) +
+  scale_x_date(date_breaks = "1 months", date_labels = ("%b")) +
+  scale_y_continuous(breaks = seq(0, 8, 1)) +
+  scale_color_manual(values = c("grey60", "#a50300")) +
+  labs(title = "DEPÓSITOS DIARIOS AL FIDEICOMISO \"POR LOS DEMÁS\", POR TIPO DE DEPÓSITO",
+       subtitle = "Datos del 26 de septiembre de 2017 al 31 de mayo de 2018.",
+       x = NULL,
+       y = "Depósitos totales diarios\n(Millones de pesos)\n",
+       caption = "\nSebastián Garrido de Sierra / @segasi / Fuente: Anexos 1 y 2 del punto 5.4 de la sesión del 18 de julio de 2018 del Consejo General del INE (https://bit.ly/2A0VMnb).\n\nNota: El Anexo 1 indica que 14 de los depósitos de $50,000 ocurrieron el 28 de diciembre de 2018. Si bien es probable que la fecha correcta sea 27 de diciembre\nde 2017, esto debe ser aclarado por la autoridad electoral. De igual forma, el Anexo 2 indica que un depósito en cheque ocurrió el 27 de abril de 2017, cuando\nprobablemente fue el 27 de abril de 2018. La gráfica no incluye estas 15 observaciones. Tampoco incluye 15 depósitos en cheque por un total de $2.2 millones para los cuales no hay fecha.",
+       color = NULL) +
+  tema +
+  theme(legend.position = c(0.85, 0.9),
+        legend.direction = "vertical",
+        legend.text = element_text(size = 15))
+
+ggsave(filename = "depositos_diarios_por_tipo.png", path = "03_graficas/", width = 16, height = 11)
+
+
+# Gráfica de depósitos acumulados diariamente
+datos %>%
+  filter(fecha > "2017-09-01",
+         fecha < "2018-06-01") %>%  # Con este filtro elimino las observaciones con fechas que me parece son equivocadas en los anexos del INE
+  group_by(tipo, fecha) %>% 
+  summarise(total_diario = sum(monto, na.rm = T)) %>% 
+  ungroup() %>% 
+  arrange(tipo, fecha) %>% 
+  group_by(tipo) %>% 
+  mutate(total_acumulado = cumsum(total_diario)) %>% 
+  ungroup() %>% 
+  ggplot() +
+  geom_line(aes(fecha, total_acumulado/1000000, group = tipo, color = tipo), size = 1.2, alpha = 0.8) +
+  scale_x_date(date_breaks = "1 months", date_labels = ("%b")) +
+  scale_y_continuous(breaks = seq(0, 60, 10), limits = c(0, 50)) +
+  scale_color_manual(values = c("grey60", "#a50300")) +
+  labs(title = "DEPÓSITOS ACUMULADOS DIARIAMENTE AL FIDEICOMISO \"POR LOS DEMÁS\", POR TIPO DE DEPÓSITO",
+       subtitle = "Datos del 26 de septiembre de 2017 al 31 de mayo de 2018.",
+       x = NULL,
+       y = "Depósitos acumulados diariamente\n(Millones de pesos)\n",
+       caption = "\nSebastián Garrido de Sierra / @segasi / Fuente: Anexos 1 y 2 del punto 5.4 de la sesión del 18 de julio de 2018 del Consejo General del INE (https://bit.ly/2A0VMnb).\n\nNota: El Anexo 1 indica que 14 de los depósitos de $50,000 ocurrieron el 28 de diciembre de 2018. Si bien es probable que la fecha correcta sea 27 de diciembre de 2017,\nesto debe ser aclarado por la autoridad electoral. De igual forma, el Anexo 2 indica que un depósito en cheque ocurrió el 27 de abril de 2017, cuando probablemente\nfue el 27 de abril de 2018. La gráfica no incluye estas 15 observaciones. Tampoco incluye 15 depósitos en cheque por un total de $2.2 millones para los cuales no hay fecha.",
+       color = NULL) +
+  tema +
+  theme(legend.position = c(0.15, 0.9),
+        legend.direction = "vertical",
+        legend.text = element_text(size = 18))
+
+ggsave(filename = "depositos_acumulados_por_tipo.png", path = "03_graficas/", width = 17, height = 12)
+
+
+
+
+
+
 
 
