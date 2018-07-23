@@ -55,7 +55,8 @@ ingresos_efectivo %>%
   ungroup() %>% 
   mutate(total_acumuldo = cumsum(total_diario)) %>% 
   ggplot() +
-  geom_line(aes(fecha, total_diario)) +
-  tema
-
+  geom_line(aes(fecha, total_diario/1000000)) +
+  labs(title = "Depósitos en efectivo al Fideoicomiso",
+       x = "\nFecha",
+       y = "Millones de pesos\n")
 
