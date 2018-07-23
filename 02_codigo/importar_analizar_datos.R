@@ -74,8 +74,8 @@ ingresos_cheque %>%
   geom_treemap_text(aes(area = monto_por_aportante, label = paste("$", comma(round(monto_por_aportante, 0)), sep = "")), color = "white", padding.y = unit(8, "mm"), size = 16) +
   geom_treemap_text(aes(area = monto_por_aportante, label = paste(por, "% del total", sep = "")), color = "white", padding.y = unit(14.5, "mm"), size = 15) +
   scale_fill_gradient(low = "grey80", high = "#a50300", guide = guide_colorbar(barwidth = 18, nbins = 6), labels = comma, breaks = pretty_breaks(n = 6)) +
-  labs(title = "¿QUIÉNES APORTARON DINERO CON CHEQUE AL FIDEICOMISO POR LOS DEMÁS?",
-       subtitle = "El tamaño de cada rectángulo es proporcional al monto de la aportación total realizada por cada persona al fideicomiso Por Los Demás.\nMientras más grande y rojo el recuadro, mayor la aportación hecha por dicha persona.",
+  labs(title = "¿QUIÉNES APORTARON DINERO CON CHEQUE AL FIDEICOMISO \"POR LOS DEMÁS\"?",
+       subtitle = "El tamaño de cada rectángulo es proporcional al monto de la aportación total realizada por cada persona al fideicomiso \"Por Los Demás\".\nMientras más grande y rojo el recuadro, mayor la aportación hecha por dicha persona.",
        caption = "\nSebastián Garrido de Sierra / @segasi / Fuente: Anexo 2 del punto 5.4 de la sesión del 18 de julio de 2018 del Consejo General del INE (https://bit.ly/2A0VMnb).") +
   tema +
   theme(legend.position = "none")
@@ -95,10 +95,45 @@ egresos_cheque %>%
   geom_treemap_text(aes(area = monto_por_aportante, label = paste("$", comma(round(monto_por_aportante, 0)), sep = "")), color = "white", padding.y = unit(8, "mm"), size = 16) +
   geom_treemap_text(aes(area = monto_por_aportante, label = paste(por, "% del total", sep = "")), color = "white", padding.y = unit(14.5, "mm"), size = 15) +
   scale_fill_gradient(low = "grey80", high = "#a50300", guide = guide_colorbar(barwidth = 18, nbins = 6), labels = comma, breaks = pretty_breaks(n = 6)) +
-  labs(title = "¿QUIÉNES RECIBIERON DINERO DEL FIDEICOMISO POR LOS DEMÁS?",
-       subtitle = "El tamaño de cada rectángulo es proporcional al monto total del o los cheques de caja emitidos por el fideicomiso Por Los Demás a favor de dicha persona.\nMientras más grande y rojo el recuadro, mayor el monto de los recursos que recibió dicha persona.",
+  labs(title = "¿QUIÉNES RECIBIERON DINERO DEL FIDEICOMISO \"POR LOS DEMÁS\"?",
+       subtitle = "El tamaño de cada rectángulo es proporcional al monto total del o los cheques de caja emitidos por el fideicomiso \"Por Los Demás\" a favor de dicha persona.\nMientras más grande y rojo el recuadro, mayor el monto de los recursos que recibió dicha persona.",
        caption = "\nSebastián Garrido de Sierra / @segasi / Fuente: Anexo 3 del punto 5.4 de la sesión del 18 de julio de 2018 del Consejo General del INE (https://bit.ly/2A0VMnb).") +
   tema +
   theme(legend.position = "none")
 
 ggsave(filename = "egresos_cheque.png", path = "03_graficas/", width = 15, height = 10)
+
+### Scatterplot de monto de donativos vs. número de donativos ----
+ingresos_efectivo %>% 
+  count(monto, sort = T) %>% 
+  mutate(total_donativos = sum(n), 
+         por_donativos = round((n/total_donativos)*100, 1),
+         total_por_monto = monto * n,
+         total = sum(total_por_monto, na.rm = T),
+         por_acumulado_por_monto = round((total_por_monto/total)*100, 1)) %>% 
+  ggplot() +
+  geom_point(aes(x = monto, y = n, size = total_por_monto/1000000), color = "#a50300", alpha = 0.6) +
+  geom_curve(aes(x = 125000, y = 330, xend = 60000, yend = 360),
+             arrow = arrow(length = unit(0.03, "npc")),
+             size = 1.5, 
+             color = "grey50") +
+  annotate(geom = "text", x = 125000, y = 265, size = 5, label = "De acuerdo con el INE, el fideicomiso recibió\n$17.55 millones en efectivo a través de 351\ndepósitos de $50,000.\n\nEstos $17.55 millones representan el 39.5%\nde los $44.4 millones que en total recibió el\nfideicomiso en efectivo.", family="Didact Gothic Regular", hjust = 0) +
+  scale_x_continuous(breaks = c(seq(0, 200000, 50000), 700000), limits = c(0, 705000), labels = comma) +
+  scale_y_continuous(limits = c(0, 400), breaks = seq(0, 400, 50)) +
+  scale_size_continuous(guide = guide_legend(direction = "horizontal", 
+                                             title.position = "top"),
+                        range = c(1, 10),
+                        breaks = c(0.5, 5, 10, 15)) +
+  labs(title = "NÚMERO DE DONATIVOS AL FIDEICOMISO \"POR LOS DEMÁS\", POR MONTO",
+       x = "\nMonto del donativo",
+       y = "Núm. de donativos\n",
+       size = "Suma de donativos recabados\npor cada monto (millones)",
+       caption = "\nSebastián Garrido de Sierra / @segasi / Fuente: Anexo 1 del punto 5.4 de la sesión del 18 de julio de 2018 del Consejo General del INE (https://bit.ly/2A0VMnb).\nNota: El Anexo 1 indica que 14 de los despósitos de $50,000 ocurrieron el 28 de diciembre de 2018. Si bien es probable que la fecha correcta sea 27 de\ndiciembre de 2017, esto debe ser aclarado por la autoridad electoral.") +
+  tema +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        legend.position = c(0.8, 0.85))
+
+
+ggsave(filename = "montos_vs_total_recabado_efectivo.png", path = "03_graficas/", width = 15, height = 10)
+
+
