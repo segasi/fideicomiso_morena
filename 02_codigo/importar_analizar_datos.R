@@ -60,3 +60,24 @@ ingresos_efectivo %>%
        x = "\nFecha",
        y = "Millones de pesos\n")
 
+
+### Treemap de depósitos en cheque ----
+ingresos_cheque %>% 
+  group_by(nombre_emisor) %>% 
+  summarise(monto_por_aportante = sum(importe)) %>% 
+  ungroup() %>% 
+  mutate(por = round((monto_por_aportante/sum(monto_por_aportante)*100), 1)) %>% 
+  rename(nombre = nombre_emisor) %>% 
+  ggplot() +
+  geom_treemap(aes(area = monto_por_aportante, fill = monto_por_aportante), col = "white") +
+  geom_treemap_text(aes(area = monto_por_aportante, label = nombre), fontface = "bold", color = "white") +
+  geom_treemap_text(aes(area = monto_por_aportante, label = paste("$", comma(round(monto_por_aportante, 0)), sep = "")), color = "white", padding.y = unit(8, "mm"), size = 16) +
+  geom_treemap_text(aes(area = monto_por_aportante, label = paste(por, "% del total", sep = "")), color = "white", padding.y = unit(14.5, "mm"), size = 15) +
+  scale_fill_gradient(low = "grey80", high = "#a50300", guide = guide_colorbar(barwidth = 18, nbins = 6), labels = comma, breaks = pretty_breaks(n = 6)) +
+  labs(title = "¿QUIÉNES APORTARON DINERO CON CHEQUE AL FIDEICOMISO POR LOS DEMÁS?",
+       subtitle = "El tamaño de cada rectángulo es proporcional al monto de la aportación total realizada por cada persona al fideicomiso Por Los Demás.\nMientras más grande y rojo el recuadro, mayor la aportación hecha por dicha persona.",
+       caption = "\nSebastián Garrido de Sierra / @segasi / Fuente: Anexo 2 del punto 5.4 de la sesión del 18 de julio de 2018 del Consejo General del INE (https://bit.ly/2A0VMnb).") +
+  tema +
+  theme(legend.position = "none")
+
+ggsave(filename = "donativos_cheque.png", path = "03_graficas/", width = 15, height = 10)
